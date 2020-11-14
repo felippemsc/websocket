@@ -1,0 +1,10 @@
+version: '3'
+services:
+  websocket:
+    container_name: websocket
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: sh -c "sleep 10 && gunicorn -w 2 -b 0.0.0.0:8080 -k aiohttp.worker.GunicornWebWorker asgi:app"
+    ports:
+      - 8080:8080
