@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket client</title>
+    </head>
+    <body>
+        <div class="buttons">
+            <div class="minus button">-</div>
+            <div class="value">?</div>
+            <div class="plus button">+</div>
+        </div>
+        <script>
+            const pingTimeout = 5000;
+            const pingInterval = 10000;
+            var websocket = new WebSocket("ws://0.0.0.0:8080/websocket");
+
+            function ping() {
+                if (websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({msg: "__ping__"}));
+                    tm = setTimeout(function () {
+                        console.log("I'm closing the Websocket from client side");
+                        websocket.close();
+                    }, pingTimeout);
+                }
+            }
+            function pong() {
+                clearTimeout(tm);
+            }
+
+            console.log("Sending Hello from Client")
+            websocket.addEventListener('open', function (event) {
+                websocket.send(JSON.stringify({msg: "Hello from Client!"}));
+            });
+            websocket.onopen = function () {
+                setInterval(ping, pingInterval);
+            }
+            websocket.onmessage = function (event) {
+                var data = event.data;
+                switch (data) {
+                    case '__pong__':
+                        pong();
+                        break;
+                    default:
+                        console.log(data);
+                }
+            };
+            websocket.onclose = function (event) {
+                console.log("Server said Bye!")
+            };
+        </script>
+    </body>
+</html>

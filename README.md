@@ -12,3 +12,5 @@ Em seguida ative-o:
 E instale os pacotes requeridos:
 
 `$ make dev-env`
+
+### TODO: Encontrar um solução de sticky session no LB da AWS
