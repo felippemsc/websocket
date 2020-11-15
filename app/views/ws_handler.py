@@ -5,8 +5,8 @@ from datetime import datetime
 
 from aiohttp import web
 
-TIME_TO_UPDATE = 30
-TIME_TO_CLOSE_WS = 3 * 60
+TIME_TO_UPDATE = 15
+TIME_TO_CLOSE_WS = 1 * 30
 
 
 async def websocket_handler(request):
