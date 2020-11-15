@@ -1,40 +1,56 @@
 import asyncio
 import json
+import uuid
 
-from datetime import datetime
+from collections import namedtuple
 
 from aiohttp import web
 
-TIME_TO_UPDATE = 15
-TIME_TO_CLOSE_WS = 1 * 30
+Integration = namedtuple('Integration', ['user_code', 'websocket', 'token'])
+
+TIME_TO_UPDATE = 1
+TIME_TO_CLOSE_WS = 3
+
+INTEGRATION_KEYS = dict()
 
 
 async def websocket_handler(request):
     scheduled_tasks = []
+    curr_id_key = str(uuid.uuid4())
 
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    def update_client():
-        now = datetime.now().isoformat()
-        asyncio.ensure_future(ws.send_str(f"Hello from Server at {now}!"))
+    def update_code():
+        nonlocal curr_id_key
+        new_id_key = str(uuid.uuid4())
+        INTEGRATION_KEYS[new_id_key] = INTEGRATION_KEYS[curr_id_key]
+        asyncio.ensure_future(ws.send_str(json.dumps({
+            "msg": f"Sending a new Identification Key: {new_id_key}!", "key": new_id_key
+        })))
+        INTEGRATION_KEYS.pop(curr_id_key)
+        curr_id_key = new_id_key
 
     def close_connection():
-        asyncio.ensure_future(ws.close(code=408, message=b"Timeout"))
+        asyncio.ensure_future(ws.close())
 
     loop = asyncio.get_event_loop()
 
     for i in range(1, TIME_TO_CLOSE_WS // TIME_TO_UPDATE):
-        scheduled_tasks.append(loop.call_later(i * TIME_TO_UPDATE, update_client))
+        scheduled_tasks.append(loop.call_later(i * TIME_TO_UPDATE, update_code))
     scheduled_tasks.append(loop.call_later(TIME_TO_CLOSE_WS, close_connection))
 
     async for msg in ws:
         content = json.loads(msg.data)
         if content["msg"] == "__ping__":
-            await ws.send_str("__pong__")
-        elif content["msg"] == "Hello from Client!":
-            await ws.send_str("Hello from Server!")
+            await ws.send_str(json.dumps({"msg": "__pong__"}))
+        elif content["msg"] == "Hey! Here is a Token":
+            INTEGRATION_KEYS[curr_id_key] = Integration(user_code="blablabla", websocket=ws, token=content["token"])
+            await ws.send_str(json.dumps({
+                "msg": f"Thank's for the token! Here is a Identification Key: {curr_id_key}", "key": curr_id_key
+            }))
 
     for scheduled_task in scheduled_tasks:
         scheduled_task.cancel()
+    INTEGRATION_KEYS.pop(curr_id_key)
     return ws

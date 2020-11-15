@@ -5,20 +5,23 @@
     </head>
     <body>
         <div id="qrcode"></div>
-        <button id="button" type="button">Clique Para Recarregar QR Code</button>
-        <script src="./js/qrcode.js"></script>
+        <button id="button" type="button">Click to Reload the QR Code!</button>
+        <h1 id="success">Successfully Connected!</h1>
+        <script src="./vendor/qrcode.js"></script>
         <script>
             var qrCodeElem = document.getElementById("qrcode");
             var qrCode = new QRCode(qrCodeElem);
             var button = document.getElementById("button");
+            var success = document.getElementById("success");
             button.style.display = "none";
+            success.style.display = "none";
 
             function startWebSocket(){
                 const pingTimeout = 5000;
                 const pingInterval = 10000;
                 var websocket = new WebSocket("ws://0.0.0.0:8080/websocket");
 
-                console.log("Sending Hello from Client");
+                console.log("Sending Token From Client");
 
                 function ping() {
                     if (websocket.readyState === WebSocket.OPEN) {
@@ -34,33 +37,40 @@
                 }
 
                 websocket.addEventListener('open', function (event) {
-                    websocket.send(JSON.stringify({msg: "Hello from Client!"}));
+                    websocket.send(JSON.stringify({msg: "Hey! Here is a Token", token: "im-a-fake-token"}));
                 });
                 websocket.onopen = function () {
                     setInterval(ping, pingInterval);
                 }
                 websocket.onmessage = function (event) {
-                    var data = event.data;
-                    switch (data) {
+                    var data = JSON.parse(event.data);
+                    switch (data.msg) {
                         case '__pong__':
                             pong();
                             break;
                         default:
-                            qrCode.makeCode(data);
+                            qrCode.makeCode(data.key);
                             qrCodeElem.style.display = "initial";
-                            console.log(data);
+                            console.log(data.msg);
                     }
                 };
                 websocket.onclose = function (event) {
-                    qrCodeElem.style.display = "none";
-                    button.style.display = "initial";
-                    console.log("Server said Bye!")
+                    var data = event;
+                    switch (event.code) {
+                        case 4000:
+                            qrCodeElem.style.display = "none";
+                            success.style.display = "initial";
+                            break;
+                        default:
+                            qrCodeElem.style.display = "none";
+                            button.style.display = "initial";
+                            console.log("Server said Bye!")
+                    }
                 };
             }
 
             startWebSocket();
             button.onclick = function (event) {
-                console.log("Sending Another Hello from Client")
                 startWebSocket();
                 button.style.display = "none";
             }
