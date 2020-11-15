@@ -6,10 +6,12 @@ from collections import namedtuple
 
 from aiohttp import web
 
+from app.utils import create_user_code, WebSocketTalker as talker
+
 Integration = namedtuple('Integration', ['user_code', 'websocket', 'token'])
 
-TIME_TO_UPDATE = 1
-TIME_TO_CLOSE_WS = 3
+TIME_TO_UPDATE = 10
+TIME_TO_CLOSE_WS = 2 * 60
 
 INTEGRATION_KEYS = dict()
 
@@ -25,13 +27,16 @@ async def websocket_handler(request):
         nonlocal curr_id_key
         new_id_key = str(uuid.uuid4())
         INTEGRATION_KEYS[new_id_key] = INTEGRATION_KEYS[curr_id_key]
-        asyncio.ensure_future(ws.send_str(json.dumps({
-            "msg": f"Sending a new Identification Key: {new_id_key}!", "key": new_id_key
-        })))
+        asyncio.ensure_future(
+            ws.send_str(
+                talker.send_code(msg=f"Sending a new Identification Key: {new_id_key}!", key=new_id_key)
+            )
+        )
         INTEGRATION_KEYS.pop(curr_id_key)
         curr_id_key = new_id_key
 
     def close_connection():
+        asyncio.ensure_future(ws.send_str(talker.timeout()))
         asyncio.ensure_future(ws.close())
 
     loop = asyncio.get_event_loop()
@@ -43,14 +48,30 @@ async def websocket_handler(request):
     async for msg in ws:
         content = json.loads(msg.data)
         if content["msg"] == "__ping__":
-            await ws.send_str(json.dumps({"msg": "__pong__"}))
+            await ws.send_str(talker.pong())
         elif content["msg"] == "Hey! Here is a Token":
-            INTEGRATION_KEYS[curr_id_key] = Integration(user_code="blablabla", websocket=ws, token=content["token"])
-            await ws.send_str(json.dumps({
-                "msg": f"Thank's for the token! Here is a Identification Key: {curr_id_key}", "key": curr_id_key
-            }))
+            INTEGRATION_KEYS[curr_id_key] = Integration(
+                user_code=create_user_code(content["token"]),
+                websocket=ws,
+                token=content["token"]
+            )
+            await ws.send_str(
+                talker.send_code(
+                    msg=f"Thank's for the token! Here is a Identification Key: {curr_id_key}", key=curr_id_key
+                )
+            )
 
     for scheduled_task in scheduled_tasks:
         scheduled_task.cancel()
     INTEGRATION_KEYS.pop(curr_id_key)
     return ws
+
+
+async def connection_handler(request):
+    integration = INTEGRATION_KEYS.get(request.match_info['key'], None)
+    if integration is not None:
+        await integration.websocket.send_str(talker.success())
+        await integration.websocket.close()
+        return web.json_response({"secret": integration.user_code})
+
+    raise web.HTTPNotFound()
