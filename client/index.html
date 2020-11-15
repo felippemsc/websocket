@@ -4,49 +4,66 @@
         <title>WebSocket client</title>
     </head>
     <body>
-        <div class="buttons">
-            <div class="minus button">-</div>
-            <div class="value">?</div>
-            <div class="plus button">+</div>
-        </div>
+        <div id="qrcode"></div>
+        <button id="button" type="button">Clique Para Recarregar QR Code</button>
+        <script src="./js/qrcode.js"></script>
         <script>
-            const pingTimeout = 5000;
-            const pingInterval = 10000;
-            var websocket = new WebSocket("ws://0.0.0.0:8080/websocket");
+            var qrCodeElem = document.getElementById("qrcode");
+            var qrCode = new QRCode(qrCodeElem);
+            var button = document.getElementById("button");
+            button.style.display = "none";
 
-            function ping() {
-                if (websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(JSON.stringify({msg: "__ping__"}));
-                    tm = setTimeout(function () {
-                        console.log("I'm closing the Websocket from client side");
-                        websocket.close();
-                    }, pingTimeout);
+            function startWebSocket(){
+                const pingTimeout = 5000;
+                const pingInterval = 10000;
+                var websocket = new WebSocket("ws://0.0.0.0:8080/websocket");
+
+                console.log("Sending Hello from Client");
+
+                function ping() {
+                    if (websocket.readyState === WebSocket.OPEN) {
+                        websocket.send(JSON.stringify({msg: "__ping__"}));
+                        tm = setTimeout(function () {
+                            console.log("I'm closing the Websocket from client side");
+                            websocket.close();
+                        }, pingTimeout);
+                    }
                 }
-            }
-            function pong() {
-                clearTimeout(tm);
+                function pong() {
+                    clearTimeout(tm);
+                }
+
+                websocket.addEventListener('open', function (event) {
+                    websocket.send(JSON.stringify({msg: "Hello from Client!"}));
+                });
+                websocket.onopen = function () {
+                    setInterval(ping, pingInterval);
+                }
+                websocket.onmessage = function (event) {
+                    var data = event.data;
+                    switch (data) {
+                        case '__pong__':
+                            pong();
+                            break;
+                        default:
+                            qrCode.makeCode(data);
+                            qrCodeElem.style.display = "initial";
+                            console.log(data);
+                    }
+                };
+                websocket.onclose = function (event) {
+                    qrCodeElem.style.display = "none";
+                    button.style.display = "initial";
+                    console.log("Server said Bye!")
+                };
             }
 
-            console.log("Sending Hello from Client")
-            websocket.addEventListener('open', function (event) {
-                websocket.send(JSON.stringify({msg: "Hello from Client!"}));
-            });
-            websocket.onopen = function () {
-                setInterval(ping, pingInterval);
+            startWebSocket();
+            button.onclick = function (event) {
+                console.log("Sending Another Hello from Client")
+                startWebSocket();
+                button.style.display = "none";
             }
-            websocket.onmessage = function (event) {
-                var data = event.data;
-                switch (data) {
-                    case '__pong__':
-                        pong();
-                        break;
-                    default:
-                        console.log(data);
-                }
-            };
-            websocket.onclose = function (event) {
-                console.log("Server said Bye!")
-            };
         </script>
     </body>
 </html>

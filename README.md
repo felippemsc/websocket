@@ -14,3 +14,8 @@ E instale os pacotes requeridos:
 `$ make dev-env`
 
 ### TODO: Encontrar um solução de sticky session no LB da AWS
+
+
+https://stackoverflow.com/questions/3780511/reconnection-of-client-when-server-reboots-in-websocket
+
+https://websockets.readthedocs.io/en/stable/intro.html
