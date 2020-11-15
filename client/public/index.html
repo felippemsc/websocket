@@ -17,7 +17,7 @@
             function startWebSocket(){
                 const pingTimeout = 5000;
                 const pingInterval = 10000;
-                var websocket = new WebSocket("ws://0.0.0.0:8080/websocket");
+                var websocket = new WebSocket("ws://localhost:8080/websocket");
 
                 button.style.display = "none";
                 success.style.display = "none";
@@ -50,9 +50,9 @@
                             pong();
                             break;
                         case 'code':
-                            qrCode.makeCode(data.key);
+                            qrCode.makeCode("http://localhost:8080/connection/" + data.key);
                             qrCodeElem.style.display = "initial";
-                            console.log("http://0.0.0.0:8080/connection/" + data.key);
+                            console.log("http://localhost:8080/connection/" + data.key);
                             console.log(data.msg);
                             break;
                         case 'success':
