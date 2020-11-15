@@ -9,15 +9,18 @@
         <h1 id="success">Successfully Connected!</h1>
         <script src="./vendor/qrcode.js"></script>
         <script>
+            const backendHost = "f06f3aaee4ed.ngrok.io";
+
             var qrCodeElem = document.getElementById("qrcode");
             var qrCode = new QRCode(qrCodeElem);
             var button = document.getElementById("button");
             var success = document.getElementById("success");
 
+            console.log(location.hostname);
             function startWebSocket(){
                 const pingTimeout = 5000;
                 const pingInterval = 10000;
-                var websocket = new WebSocket("ws://localhost:8080/websocket");
+                var websocket = new WebSocket("ws://" + backendHost + "/websocket");
 
                 button.style.display = "none";
                 success.style.display = "none";
@@ -50,9 +53,8 @@
                             pong();
                             break;
                         case 'code':
-                            qrCode.makeCode("http://localhost:8080/connection/" + data.key);
+                            qrCode.makeCode("http://" + backendHost + "/connection/" + data.key);
                             qrCodeElem.style.display = "initial";
-                            console.log("http://localhost:8080/connection/" + data.key);
                             console.log(data.msg);
                             break;
                         case 'success':

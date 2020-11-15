@@ -10,7 +10,7 @@ from app.utils import create_user_code, WebSocketTalker as talker
 
 Integration = namedtuple('Integration', ['user_code', 'websocket', 'token'])
 
-TIME_TO_UPDATE = 10
+TIME_TO_UPDATE = 30
 TIME_TO_CLOSE_WS = 2 * 60
 
 INTEGRATION_KEYS = dict()
