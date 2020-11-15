@@ -1,10 +1,21 @@
 version: '3'
 services:
-  websocket:
-    container_name: websocket
+  server:
+    container_name: server
     build:
       context: .
       dockerfile: docker/Dockerfile
     command: sh -c "gunicorn -w 1 -b 0.0.0.0:8080 -k aiohttp.worker.GunicornWebWorker asgi:app"
     ports:
       - 8080:8080
+
+  client:
+    container_name: client
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    command: sh -c "npm run server"
+    ports:
+      - 3000:3000
+    depends_on:
+      - server
