@@ -13,13 +13,14 @@
             var qrCode = new QRCode(qrCodeElem);
             var button = document.getElementById("button");
             var success = document.getElementById("success");
-            button.style.display = "none";
-            success.style.display = "none";
 
             function startWebSocket(){
                 const pingTimeout = 5000;
                 const pingInterval = 10000;
                 var websocket = new WebSocket("ws://0.0.0.0:8080/websocket");
+
+                button.style.display = "none";
+                success.style.display = "none";
 
                 console.log("Sending Token From Client");
 
@@ -44,28 +45,30 @@
                 }
                 websocket.onmessage = function (event) {
                     var data = JSON.parse(event.data);
-                    switch (data.msg) {
-                        case '__pong__':
+                    switch (data.type) {
+                        case 'pong':
                             pong();
                             break;
-                        default:
+                        case 'code':
                             qrCode.makeCode(data.key);
                             qrCodeElem.style.display = "initial";
+                            console.log("http://0.0.0.0:8080/connection/" + data.key);
                             console.log(data.msg);
-                    }
-                };
-                websocket.onclose = function (event) {
-                    var data = event;
-                    switch (event.code) {
-                        case 4000:
+                            break;
+                        case 'success':
                             qrCodeElem.style.display = "none";
                             success.style.display = "initial";
                             break;
-                        default:
+                        case 'timeout':
                             qrCodeElem.style.display = "none";
                             button.style.display = "initial";
-                            console.log("Server said Bye!")
+                            break;
+                        default:
+                            console.error("unsupported event", data);
                     }
+                };
+                websocket.onclose = function (event) {
+                    console.log("Server said Bye!");
                 };
             }
 
