@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket client</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <h1 id="totp"></h1>
+        <div id="countdownExample">
+            <div class="values"></div>
+        </div>
+        <h3 id="secret"></h3>
+        <script src='dist/jsOTP.min.js'></script>
+        <script src='dist/easytimer.min.js'></script>
+        <script>
+            const backendHost = "localhost:8080";
+            const key = new URLSearchParams(window.location.search).get('key');
+            const totpExpirationTime = 10;
+
+            var totpElem = document.getElementById("totp");
+            var totpObj = new jsOTP.totp(totpExpirationTime);
+            var timerInstance = new easytimer.Timer();
+            timerInstance.start({countdown: true, startValues: {seconds: totpExpirationTime}});
+
+            var secret = null;
+            var timeCode = null;
+
+            function refreshToken() {
+                if (secret !== null) {
+                    timeCode = totpObj.getOtp(secret);
+                    totpElem.innerHTML = timeCode;
+                    timerInstance.reset();
+                }
+            }
+
+            window.addEventListener("load", function(event) {
+                setInterval(refreshToken, totpExpirationTime * 1000);
+            });
+
+            $.ajax({
+                url: "http://" + backendHost + "/connection/" + key,
+                type: "GET",
+                crossDomain: true,
+                success: function (response) {
+                    secret = response.secret;
+                    timeCode = totpObj.getOtp(secret);
+                    totpElem.innerHTML = timeCode;
+                    document.getElementById("secret").innerHTML = "Eu sou o secret que exibe gera o TOTP: " + secret;
+                },
+                error: function (xhr, status) {
+                    console.error(status);
+                }
+            });
+
+            $('#countdownExample .values').html(timerInstance.getTimeValues().toString(['seconds']));
+
+            timerInstance.addEventListener('secondsUpdated', function (e) {
+                $('#countdownExample .values').html(timerInstance.getTimeValues().toString(['seconds']));
+            });
+        </script>
+    </body>
+</html>

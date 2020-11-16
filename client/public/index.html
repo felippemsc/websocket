@@ -4,26 +4,30 @@
         <title>WebSocket client</title>
     </head>
     <body>
+        <h1 id="title">Leia o QR Code abaixo com o seu celular e acesse o link:</h1>
         <div id="qrcode"></div>
         <button id="button" type="button">Click to Reload the QR Code!</button>
-        <h1 id="success">Successfully Connected!</h1>
+        <p>
+            Este token é atualizado de tempos em tempos.
+            Você pode abrir o console para acompanhar melhor a aplicação.
+        </p>
         <script src="./vendor/qrcode.js"></script>
         <script>
-            const backendHost = "f06f3aaee4ed.ngrok.io";
+            const backendHost = "localhost:8080";
+            <!--location.hostname-->
+            const clientHost = "localhost:3000";
 
             var qrCodeElem = document.getElementById("qrcode");
             var qrCode = new QRCode(qrCodeElem);
             var button = document.getElementById("button");
-            var success = document.getElementById("success");
+            var title = document.getElementById("title");
 
-            console.log(location.hostname);
             function startWebSocket(){
                 const pingTimeout = 5000;
                 const pingInterval = 10000;
                 var websocket = new WebSocket("ws://" + backendHost + "/websocket");
 
                 button.style.display = "none";
-                success.style.display = "none";
 
                 console.log("Sending Token From Client");
 
@@ -53,13 +57,14 @@
                             pong();
                             break;
                         case 'code':
-                            qrCode.makeCode("http://" + backendHost + "/connection/" + data.key);
+                            qrCode.makeCode("http://" + clientHost + "/totp.html?key=" + data.key);
+                            console.log("http://" + clientHost + "/totp.html?key=" + data.key);
                             qrCodeElem.style.display = "initial";
                             console.log(data.msg);
                             break;
                         case 'success':
                             qrCodeElem.style.display = "none";
-                            success.style.display = "initial";
+                            title.style.innerHTML = "Conexão realizada com sucesso!!!";
                             break;
                         case 'timeout':
                             qrCodeElem.style.display = "none";
