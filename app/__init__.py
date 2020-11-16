@@ -3,6 +3,7 @@ import aiohttp_cors
 from aiohttp import web
 
 from app.views import health_check
+from app.views.validation import validation_handler
 from app.views.ws_handler import websocket_handler, connection_handler
 
 
@@ -11,6 +12,7 @@ def create_app():
 
     app.router.add_get('/health-check', health_check)
     app.router.add_get('/connection/{key}', connection_handler)
+    app.router.add_post('/validation', validation_handler)
     app.add_routes([web.get('/websocket', websocket_handler)])
 
     cors = aiohttp_cors.setup(app, defaults={

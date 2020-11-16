@@ -7,6 +7,8 @@ name = "pypi"
 aiohttp = "*"
 aiohttp_cors = "*"
 gunicorn = "*"
+pyotp = "*"
+redis = "*"
 
 [dev-packages]
 
