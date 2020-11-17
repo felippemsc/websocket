@@ -1,18 +1,16 @@
 version: '3'
 services:
-  server:
-    container_name: server
+  another-server:
+    container_name: another-server
     build:
       context: .
       dockerfile: docker/Dockerfile
     command: sh -c "gunicorn -w 1 -b 0.0.0.0:8080 -k aiohttp.worker.GunicornWebWorker asgi:app"
     ports:
       - 8080:8080
-    depends_on:
-      - redis
 
-  client:
-    container_name: client
+  another-client:
+    container_name: another-client
     build:
       context: .
       dockerfile: docker/Dockerfile.client
@@ -20,9 +18,4 @@ services:
     ports:
       - 3000:3000
     depends_on:
-      - server
-
-  redis:
-    image: redis:6.0.9-alpine
-    ports:
-      - 6379:6379
+      - another-server

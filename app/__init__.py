@@ -3,8 +3,7 @@ import aiohttp_cors
 from aiohttp import web
 
 from app.views import health_check
-from app.views.validation import validation_handler
-from app.views.ws_handler import websocket_handler, connection_handler
+from app.views.ws_handler import websocket_handler, connection_handler, validation_handler
 
 
 def create_app():

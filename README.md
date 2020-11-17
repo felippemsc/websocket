@@ -32,4 +32,3 @@ tunnels:
 5. `$ docker-compose up`
 
 ### TODO: Encontrar um solução de sticky session no LB da AWS
-* Criar endpoint /validation, recebe Token e verifica o secret

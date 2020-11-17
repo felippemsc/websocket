@@ -19,9 +19,9 @@
         <button id="button" type="button">Click to Reload the QR Code!</button>
         <script src="dist/qrcode.js"></script>
         <script>
-            const backendHost = "localhost:8080";
-            <!--location.hostname-->
-            const clientHost = "localhost:3000";
+            const backendHost = "6b6f7787c931.ngrok.io";
+            <!--localhost:3000-->
+            const clientHost = location.hostname;
 
             var qrCodeElem = document.getElementById("qrcode");
             var qrCode = new QRCode(qrCodeElem);
@@ -80,7 +80,6 @@
                             break;
                         case 'code':
                             qrCode.makeCode("http://" + clientHost + "/totp.html?key=" + data.key);
-                            console.log("http://" + clientHost + "/totp.html?key=" + data.key);
                             qrCodeElem.style.display = "initial";
                             console.log(data.msg);
                             break;

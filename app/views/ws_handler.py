@@ -4,7 +4,7 @@ import uuid
 
 from collections import namedtuple
 
-import redis
+import pyotp
 
 from aiohttp import web
 
@@ -16,6 +16,7 @@ TIME_TO_UPDATE = 30
 TIME_TO_CLOSE_WS = 2 * 60
 
 INTEGRATION_KEYS = dict()
+CONNECTED = dict()
 
 
 async def websocket_handler(request):
@@ -76,8 +77,17 @@ async def connection_handler(request):
         await integration.websocket.send_str(talker.success())
         await integration.websocket.close()
 
-        r = redis.Redis(host='localhost', port=6379, db=0)
-        r.set(integration.token, integration.user_code, ex=30 * 60)
+        CONNECTED[integration.token] = integration.user_code
         return web.json_response({"secret": integration.user_code})
 
     raise web.HTTPNotFound()
+
+
+async def validation_handler(request):
+    body = await request.json()
+    secret = CONNECTED[body['token']]
+    totp = pyotp.TOTP(secret)
+    if totp.verify(body['code']):
+        return web.json_response({"result": "ok"})
+
+    raise web.HTTPBadRequest()
