@@ -1,8 +1,6 @@
 import json
 
-from base64 import b64encode
-from datetime import datetime
-from hashlib import md5
+import pyotp
 
 
 class WebSocketTalker:
@@ -44,10 +42,5 @@ class WebSocketTalker:
         )
 
 
-def create_user_code(token):
-    key = f'{token}:{datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f")}'
-
-    hash = md5(key.encode('utf-8')).digest()
-
-    final_key = b64encode(hash).decode('utf-8')
-    return final_key
+def create_user_code():
+    return pyotp.random_base32()

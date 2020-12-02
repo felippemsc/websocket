@@ -2,25 +2,47 @@
 <html>
     <head>
         <title>WebSocket client</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     </head>
     <body>
         <h1 id="title">Leia o QR Code abaixo com o seu celular e acesse o link:</h1>
-        <div id="qrcode"></div>
-        <button id="button" type="button">Click to Reload the QR Code!</button>
-        <p>
+        <p id="explanation">
             Este token é atualizado de tempos em tempos.
             Você pode abrir o console para acompanhar melhor a aplicação.
         </p>
-        <script src="./vendor/qrcode.js"></script>
+        <div style="overflow: hidden; padding-right: .5em;">
+            <input id="textBoxCode" type="text" />
+        </div>
+        <input id="submitCode" type="submit" value="Enviar" />
+        <h3 id="codeStatus"></h3>
+        <div id="qrcode"></div>
+        <button id="button" type="button">Click to Reload the QR Code!</button>
+        <script src="dist/qrcode.js"></script>
         <script>
-            const backendHost = "localhost:8080";
-            <!--location.hostname-->
-            const clientHost = "localhost:3000";
+            const backendHost = "6b6f7787c931.ngrok.io";
+            <!--localhost:3000-->
+            const clientHost = location.hostname;
 
             var qrCodeElem = document.getElementById("qrcode");
             var qrCode = new QRCode(qrCodeElem);
             var button = document.getElementById("button");
+            var sendCode = document.getElementById("submitCode");
+            var textBox = document.getElementById("textBoxCode");
             var title = document.getElementById("title");
+            var token = createToken(45);
+
+            sendCode.style.display = "none";
+            textBox.style.display = "none";
+
+            function createToken(length) {
+                var result = '';
+                var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                var charactersLength = characters.length;
+                for ( var i = 0; i < length; i++ ) {
+                    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                }
+                return result;
+            }
 
             function startWebSocket(){
                 const pingTimeout = 5000;
@@ -45,7 +67,7 @@
                 }
 
                 websocket.addEventListener('open', function (event) {
-                    websocket.send(JSON.stringify({msg: "Hey! Here is a Token", token: "im-a-fake-token"}));
+                    websocket.send(JSON.stringify({msg: "Hey! Here is a Token", token: token}));
                 });
                 websocket.onopen = function () {
                     setInterval(ping, pingInterval);
@@ -58,13 +80,15 @@
                             break;
                         case 'code':
                             qrCode.makeCode("http://" + clientHost + "/totp.html?key=" + data.key);
-                            console.log("http://" + clientHost + "/totp.html?key=" + data.key);
                             qrCodeElem.style.display = "initial";
                             console.log(data.msg);
                             break;
                         case 'success':
                             qrCodeElem.style.display = "none";
-                            title.style.innerHTML = "Conexão realizada com sucesso!!!";
+                            document.getElementById("explanation").innerHTML = "Teste a geração do código, digitando o mesmo abaixo";
+                            title.innerHTML = "Conexão realizada com sucesso!!!";
+                            sendCode.style.display = "initial";
+                            textBox.style.display = "initial";
                             break;
                         case 'timeout':
                             qrCodeElem.style.display = "none";
@@ -83,6 +107,27 @@
             button.onclick = function (event) {
                 startWebSocket();
                 button.style.display = "none";
+            }
+
+            sendCode.onclick = function (event) {
+                var code = textBox.value;
+                document.getElementById("codeStatus").innerHTML = "";
+                textBox.value = "";
+                $.ajax({
+                    url: "http://" + backendHost + "/validation",
+                    type: "POST",
+                    data: JSON.stringify({ "token": token, "code": code }),
+                    dataType: 'json',
+                    crossDomain: true,
+                    success: function (response) {
+                        document.getElementById("codeStatus").innerHTML = "Código Válido";
+                        document.getElementById("codeStatus").style.backgroundColor = "green";
+                    },
+                    error: function (xhr, status) {
+                        document.getElementById("codeStatus").innerHTML = "Código Inválido";
+                        document.getElementById("codeStatus").style.backgroundColor = "red";
+                    }
+                });
             }
         </script>
     </body>

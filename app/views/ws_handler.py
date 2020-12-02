@@ -4,6 +4,8 @@ import uuid
 
 from collections import namedtuple
 
+import pyotp
+
 from aiohttp import web
 
 from app.utils import create_user_code, WebSocketTalker as talker
@@ -14,6 +16,7 @@ TIME_TO_UPDATE = 30
 TIME_TO_CLOSE_WS = 2 * 60
 
 INTEGRATION_KEYS = dict()
+CONNECTED = dict()
 
 
 async def websocket_handler(request):
@@ -51,7 +54,7 @@ async def websocket_handler(request):
             await ws.send_str(talker.pong())
         elif content["msg"] == "Hey! Here is a Token":
             INTEGRATION_KEYS[curr_id_key] = Integration(
-                user_code=create_user_code(content["token"]),
+                user_code=create_user_code(),
                 websocket=ws,
                 token=content["token"]
             )
@@ -68,10 +71,23 @@ async def websocket_handler(request):
 
 
 async def connection_handler(request):
-    integration = INTEGRATION_KEYS.get(request.match_info['key'], None)
+    key = request.match_info['key']
+    integration = INTEGRATION_KEYS.get(key, None)
     if integration is not None:
         await integration.websocket.send_str(talker.success())
         await integration.websocket.close()
+
+        CONNECTED[integration.token] = integration.user_code
         return web.json_response({"secret": integration.user_code})
 
     raise web.HTTPNotFound()
+
+
+async def validation_handler(request):
+    body = await request.json()
+    secret = CONNECTED[body['token']]
+    totp = pyotp.TOTP(secret)
+    if totp.verify(body['code']):
+        return web.json_response({"result": "ok"})
+
+    raise web.HTTPBadRequest()

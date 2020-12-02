@@ -3,6 +3,8 @@
     <head>
         <title>WebSocket client</title>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://unpkg.com/@otplib/preset-browser@^12.0.0/buffer.js"></script>
+        <script src="https://unpkg.com/@otplib/preset-browser@^12.0.0/index.js"></script>
     </head>
     <body>
         <h1 id="totp"></h1>
@@ -10,31 +12,27 @@
             <div class="values"></div>
         </div>
         <h3 id="secret"></h3>
-        <script src='dist/jsOTP.min.js'></script>
         <script src='dist/easytimer.min.js'></script>
         <script>
-            const backendHost = "localhost:8080";
+            const backendHost = "6b6f7787c931.ngrok.io";
             const key = new URLSearchParams(window.location.search).get('key');
-            const totpExpirationTime = 10;
 
             var totpElem = document.getElementById("totp");
-            var totpObj = new jsOTP.totp(totpExpirationTime);
             var timerInstance = new easytimer.Timer();
-            timerInstance.start({countdown: true, startValues: {seconds: totpExpirationTime}});
 
             var secret = null;
             var timeCode = null;
 
             function refreshToken() {
                 if (secret !== null) {
-                    timeCode = totpObj.getOtp(secret);
+                    timeCode = window.otplib.authenticator.generate(secret);
                     totpElem.innerHTML = timeCode;
-                    timerInstance.reset();
+                    timerInstance.start({countdown: true, startValues: {seconds: window.otplib.authenticator.timeRemaining()}});
                 }
             }
 
             window.addEventListener("load", function(event) {
-                setInterval(refreshToken, totpExpirationTime * 1000);
+                setInterval(refreshToken, 1000);
             });
 
             $.ajax({
@@ -43,8 +41,9 @@
                 crossDomain: true,
                 success: function (response) {
                     secret = response.secret;
-                    timeCode = totpObj.getOtp(secret);
+                    timeCode = window.otplib.authenticator.generate(secret);
                     totpElem.innerHTML = timeCode;
+                    timerInstance.start({countdown: true, startValues: {seconds: window.otplib.authenticator.timeRemaining()}});
                     document.getElementById("secret").innerHTML = "Eu sou o secret que exibe gera o TOTP: " + secret;
                 },
                 error: function (xhr, status) {
